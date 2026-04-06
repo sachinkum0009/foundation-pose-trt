@@ -7,6 +7,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(OpenCV 4 REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -34,11 +35,27 @@ set(TENSORRT_LIBRARY ${TENSORRT_LIBRARY_INFER} ${TENSORRT_LIBRARY_INFER_PLUGIN} 
 include_directories(
   ${TENSORRT_INCLUDE_DIR}
   ${CUDA_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
+# TensorRT Engine
+add_executable(trt_engine_node src/trt_engine.cpp src/trt_engine_node.cpp)
+
+target_link_libraries(trt_engine_node
+  ${TENSORRT_LIBRARY}
+  ${OpenCV_LIBRARIES}
+  ${CUDA_LIBRARIES}
+)
+
+target_include_directories(trt_engine_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+# Foundation Pose
 add_executable(foundation_pose_node src/foundation_pose.cpp src/foundation_pose_node.cpp)
 
-target_link_libraries(foundation_pose_node ${TENSORRT_LIBRARY})
+target_link_libraries(foundation_pose_node ${TENSORRT_LIBRARY} ${OpenCV_LIBRARIES})
 
 target_include_directories(foundation_pose_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -47,7 +64,7 @@ target_include_directories(foundation_pose_node PUBLIC
 
 target_compile_features(foundation_pose_node PUBLIC c_std_99 cxx_std_17)
 
-install(TARGETS foundation_pose_node
+install(TARGETS foundation_pose_node trt_engine_node
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

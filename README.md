@@ -56,3 +56,4 @@ classDiagram
 ## Acknowledgement
 
 - https://github.com/ika-rwth-aachen/ros2-depth-anything-v3-trt
+- https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation
