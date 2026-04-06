@@ -53,6 +53,12 @@ classDiagram
     FoundationPose ..> Pose : produces
 ```
 
+## Command to convert onnx model to `TensorRT`
+
+```bash
+./scripts/convert_onnx.sh onnx/yolo_model_100_static.onnx model_rtx3060.engine
+```
+
 ## Acknowledgement
 
 - https://github.com/ika-rwth-aachen/ros2-depth-anything-v3-trt
