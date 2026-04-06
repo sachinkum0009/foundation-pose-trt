@@ -1,4 +1,5 @@
 #include "foundation_pose/trt_engine.hpp"
+#include <fstream>
 // #include <NvInfer.h>
 // #include <NvInferRuntime.h>
 // #include <NvInferRuntimeBase.h>
@@ -23,8 +24,8 @@ class Logger : public ILogger {
   }
 } gLogger;
 
-TrtEngine::TrtEngine(std::string &onnx_path) {
-  build(onnx_path);
+TrtEngine::TrtEngine(std::string &model_path) {
+  build(model_path);
   cudaStreamCreate(&stream);
 }
 TrtEngine::~TrtEngine() {
@@ -38,27 +39,76 @@ TrtEngine::~TrtEngine() {
     delete runtime;
 }
 
-void TrtEngine::build(const std::string &onnx_path) {
-  auto builder = createInferBuilder(gLogger);
-  // NOTE: Old Way
-  // const auto explicitBatch =
-  //     1U << static_cast<uint32_t>(
-  //         NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
-  // auto network = builder->createNetworkV2(explicitBatch);
-  auto network = builder->createNetworkV2(0U);
-  auto parser = nvonnxparser::createParser(*network, gLogger);
+void TrtEngine::build(const std::string &model_path) {
+    // 1. Initialize Runtime first (needed for both paths)
+        runtime = nvinfer1::createInferRuntime(gLogger);
 
-  parser->parseFromFile(onnx_path.c_str(),
-                        static_cast<int>(ILogger::Severity::kWARNING));
+        bool is_engine = (model_path.substr(model_path.find_last_of(".") + 1) == "engine");
 
-  auto config = builder->createBuilderConfig();
-  config->setMemoryPoolLimit(MemoryPoolType::kWORKSPACE, 1U << 30); // 1GB
+        if (is_engine) {
+            // --- LOAD ENGINE ---
+            std::ifstream file(model_path, std::ios::binary);
+            if (!file.is_open()) {
+                std::cerr << "Failed to open engine file: " << model_path << std::endl;
+                return;
+            }
 
-  auto plan = builder->buildSerializedNetwork(*network, *config);
-  runtime = createInferRuntime(gLogger);
-  engine = runtime->deserializeCudaEngine(plan->data(), plan->size());
-  context = engine->createExecutionContext();
+            file.seekg(0, std::ios::end);
+            size_t size = file.tellg();
+            file.seekg(0, std::ios::beg);
 
+            std::vector<char> engine_data(size);
+            file.read(engine_data.data(), size);
+            file.close();
+
+            engine = runtime->deserializeCudaEngine(engine_data.data(), size);
+            std::cout << "Successfully loaded engine: " << model_path << std::endl;
+        }
+        else {
+            // --- BUILD FROM ONNX ---
+            auto builder = nvinfer1::createInferBuilder(gLogger);
+            auto network = builder->createNetworkV2(0U);
+            auto parser = nvonnxparser::createParser(*network, gLogger);
+
+            if (!parser->parseFromFile(model_path.c_str(), static_cast<int>(nvinfer1::ILogger::Severity::kWARNING))) {
+                std::cerr << "Failed to parse ONNX file!" << std::endl;
+                return;
+            }
+
+            auto config = builder->createBuilderConfig();
+            config->setMemoryPoolLimit(nvinfer1::MemoryPoolType::kWORKSPACE, 1ULL << 30);
+
+            // Performance optimization
+            if (builder->platformHasFastFp16()) {
+                config->setFlag(nvinfer1::BuilderFlag::kFP16);
+                std::cout << "FP16 mode enabled." << std::endl;
+            }
+
+            auto plan = builder->buildSerializedNetwork(*network, *config);
+
+            // Save the engine for next time
+            std::string engine_path = model_path.substr(0, model_path.find_last_of(".")) + ".engine";
+            std::ofstream p(engine_path, std::ios::binary);
+            p.write(reinterpret_cast<const char*>(plan->data()), plan->size());
+            p.close();
+            std::cout << "Engine built and saved to: " << engine_path << std::endl;
+
+            engine = runtime->deserializeCudaEngine(plan->data(), plan->size());
+
+            // Clean up builder resources
+            delete parser;
+            delete network;
+            delete builder;
+            delete config;
+        }
+
+        if (engine) {
+            context = engine->createExecutionContext();
+        }
+        setup_buffers();
+}
+
+void TrtEngine::setup_buffers() {
   // Setup Buffers
   int nbBindings = engine->getNbIOTensors();
   for (int i = 0; i < nbBindings; ++i) {
@@ -99,7 +149,8 @@ void TrtEngine::infer(const cv::Mat &img) {
 
   // // Upload to GPU
   // cudaMemcpy(buffers[input_index], input_blob.data(),
-  //            buffer_sizes[input_index] * sizeof(float), cudaMemcpyHostToDevice);
+  //            buffer_sizes[input_index] * sizeof(float),
+  //            cudaMemcpyHostToDevice);
 
   // // Run Inference
   // context->setInputTensorAddress(engine->getIOTensorName(input_index),
@@ -118,8 +169,10 @@ void TrtEngine::infer(const cv::Mat &img) {
                   cudaMemcpyHostToDevice, stream);
 
   // 2. Run Inference on the specific stream
-  context->setInputTensorAddress(engine->getIOTensorName(input_index), buffers[input_index]);
-  context->setOutputTensorAddress(engine->getIOTensorName(output_index), buffers[output_index]);
+  context->setInputTensorAddress(engine->getIOTensorName(input_index),
+                                 buffers[input_index]);
+  context->setOutputTensorAddress(engine->getIOTensorName(output_index),
+                                  buffers[output_index]);
   context->enqueueV3(stream);
 
   // 3. Download Results Asynchronously

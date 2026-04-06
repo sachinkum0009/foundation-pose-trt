@@ -16,12 +16,13 @@ namespace foundation_pose {
 /// Inference the model
 class TrtEngine {
 public:
-  TrtEngine(std::string& onnx_path);
+  TrtEngine(std::string& model_path);
   ~TrtEngine();
 
   void infer(const cv::Mat& img);
 private:
-    void build(const std::string& onnx_path);
+    void build(const std::string& model_path);
+    void setup_buffers();
     // TensorRT objects
     nvinfer1::IRuntime* runtime{nullptr};
     nvinfer1::ICudaEngine* engine{nullptr};
