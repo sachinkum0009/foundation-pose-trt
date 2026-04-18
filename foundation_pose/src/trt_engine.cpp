@@ -1,16 +1,5 @@
 #include "foundation_pose/trt_engine.hpp"
 #include <fstream>
-// #include <NvInfer.h>
-// #include <NvInferRuntime.h>
-// #include <NvInferRuntimeBase.h>
-// #include <NvOnnxParser.h>
-// #include <cstdint>
-// #include <cuda_runtime_api.h>
-// #include <driver_types.h>
-// #include <fstream>
-// #include <iostream>
-// #include <opencv2/core/hal/interface.h>
-// #include <opencv2/core/types.hpp>
 
 using namespace nvinfer1;
 

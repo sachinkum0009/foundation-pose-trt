@@ -3,7 +3,7 @@
 <package format="3">
   <name>foundation_pose</name>
   <version>0.0.1</version>
-  <description>TODO: Package description</description>
+  <description>Implementing Foundation Pose with Onnx</description>
   <maintainer email="sachinkumar.ar97@gmail.com">Sachin Kumar</maintainer>
   <license>Apache 2.0</license>
 
