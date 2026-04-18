@@ -13,7 +13,7 @@ class Logger : public ILogger {
   }
 } gLogger;
 
-TrtEngine::TrtEngine(std::string &model_path) {
+TrtEngine::TrtEngine(std::string &model_path) : S(7), B(3), C(20), threshold(0.52f) {
   build(model_path);
   cudaStreamCreate(&stream);
 }
@@ -136,22 +136,6 @@ void TrtEngine::infer(const cv::Mat &img) {
                       (float *)c.data + 448 * 448);
   }
 
-  // // Upload to GPU
-  // cudaMemcpy(buffers[input_index], input_blob.data(),
-  //            buffer_sizes[input_index] * sizeof(float),
-  //            cudaMemcpyHostToDevice);
-
-  // // Run Inference
-  // context->setInputTensorAddress(engine->getIOTensorName(input_index),
-  //                                buffers[input_index]);
-  // context->setOutputTensorAddress(engine->getIOTensorName(output_index),
-  //                                 buffers[output_index]);
-  // context->enqueueV3(0);
-
-  // // Download Results
-  // cudaMemcpy(output_data.data(), buffers[output_index],
-  //            buffer_sizes[output_index] * sizeof(float),
-  //            cudaMemcpyDeviceToHost);
   // 1. Upload to GPU Asynchronously
   cudaMemcpyAsync(buffers[input_index], input_blob.data(),
                   buffer_sizes[input_index] * sizeof(float),
@@ -172,12 +156,12 @@ void TrtEngine::infer(const cv::Mat &img) {
   // 4. Wait for the stream to finish before post-processing
   cudaStreamSynchronize(stream);
 
-  // Post Processing
-  int S = 7;
-  int B = 3;
-  int C = 20; // VOC Classes
-  float threshold = 0.52;
+  // 5. Post Process Image
+  post_processing(img);
+}
 
+void TrtEngine::post_processing(const cv::Mat &img) {
+  // Post Processing
   for (int i = 0; i < S; ++i) {
     for (int j = 0; j < S; ++j) {
       for (int a = 0; a < B; ++a) {
@@ -230,6 +214,7 @@ void TrtEngine::infer(const cv::Mat &img) {
       }
     }
   }
+
 }
 
 } // namespace foundation_pose

@@ -23,6 +23,7 @@ public:
 private:
     void build(const std::string& model_path);
     void setup_buffers();
+    void post_processing(const cv::Mat &img);
     // TensorRT objects
     nvinfer1::IRuntime* runtime{nullptr};
     nvinfer1::ICudaEngine* engine{nullptr};
@@ -39,6 +40,12 @@ private:
     // Cuda Stream
     cudaStream_t stream;
     // std::string _model_path;
+
+    // Post Processing Params
+    int S;
+    int B;
+    int C; // VOC Classes
+    float threshold;
 };
 
 } // namespace foundation_pose
