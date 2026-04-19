@@ -7,6 +7,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(cv_bridge REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -62,9 +63,18 @@ target_include_directories(foundation_pose_node PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 
+# YOLO ROS2 Node
+add_executable(yolo_ros_node src/yolo.cpp src/trt_engine.cpp)
+target_link_libraries(yolo_ros_node ${TENSORRT_LIBRARY} ${OpenCV_LIBRARIES} ${CUDA_LIBRARIES} rclcpp::rclcpp ${std_msgs_TARGETS} ${sensor_msgs_TARGETS} cv_bridge::cv_bridge)
+target_include_directories(yolo_ros_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+
 target_compile_features(foundation_pose_node PUBLIC c_std_99 cxx_std_17)
 
-install(TARGETS foundation_pose_node trt_engine_node
+install(TARGETS foundation_pose_node trt_engine_node yolo_ros_node
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
