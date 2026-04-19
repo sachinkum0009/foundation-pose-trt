@@ -23,6 +23,7 @@ def generate_launch_description():
         executable="yolo_ros_node",
         name="yolo_ros_node",
         output="screen",
+        remappings=[("img_in", "rgb_raw"), ("img_out", "yolo_res")],
     )
     ld.add_action(yolo_ros_node)
     return ld
