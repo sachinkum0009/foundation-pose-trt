@@ -16,10 +16,10 @@ namespace foundation_pose {
 /// Inference the model
 class TrtEngine {
 public:
-  TrtEngine(std::string& model_path);
+  TrtEngine(const std::string& model_path);
   ~TrtEngine();
 
-  void infer(const cv::Mat& img);
+  void infer(const cv::Mat &img);
 private:
     void build(const std::string& model_path);
     void setup_buffers();

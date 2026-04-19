@@ -69,3 +69,4 @@ ros2 run foundation_pose trt_engine_node
 
 - https://github.com/ika-rwth-aachen/ros2-depth-anything-v3-trt
 - https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation
+- https://developer.nvidia.com/nsight-dl-designer

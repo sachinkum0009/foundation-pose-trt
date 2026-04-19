@@ -1,5 +1,6 @@
 #include "foundation_pose/trt_engine.hpp"
 #include <fstream>
+#include <iostream>
 
 using namespace nvinfer1;
 
@@ -13,7 +14,7 @@ class Logger : public ILogger {
   }
 } gLogger;
 
-TrtEngine::TrtEngine(std::string &model_path) : S(7), B(3), C(20), threshold(0.52f) {
+TrtEngine::TrtEngine(const std::string &model_path) : S(7), B(3), C(20), threshold(0.52f) {
   build(model_path);
   cudaStreamCreate(&stream);
 }
