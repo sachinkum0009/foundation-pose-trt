@@ -19,7 +19,7 @@ namespace yolo
         void run_inference(const cv::Mat &img);
 
     private:
-        std::unique_ptr<foundation_pose:TrtEngine> _trt_engine;
+        std::unique_ptr<foundation_pose::TrtEngine> _trt_engine;
     };
 } // namespace yolo
 
